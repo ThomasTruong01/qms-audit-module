@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import Dashboard   from './components/Dashboard';
 import MasterPlan  from './components/MasterPlan';
+import MySessions  from './components/MySessions';
 import AuditRecord from './components/AuditRecord';
 
 // Placeholder views for tabs not yet built
@@ -18,6 +19,7 @@ function Placeholder({ name }) {
 const TABS = [
   { id: 'dashboard',  label: 'Dashboard' },
   { id: 'master',     label: 'Master Plan' },
+  { id: 'sessions',   label: 'My Sessions' },
   { id: 'record',     label: 'Audit Record' },
   { id: 'schedule',   label: 'Schedule' },
   { id: 'external',   label: 'External Audits' },
@@ -30,6 +32,7 @@ export default function App() {
     switch (tab) {
       case 'dashboard': return <Dashboard onNavigate={setTab} />;
       case 'master':    return <MasterPlan />;
+      case 'sessions':  return <MySessions />;
       case 'record':    return <AuditRecord />;
       default:          return <Placeholder name={TABS.find(t => t.id === tab)?.label} />;
     }
