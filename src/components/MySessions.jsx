@@ -84,10 +84,11 @@ function blankForm(date = '', startHour = 9) {
 export default function MySessions() {
   const [weekStart,  setWeekStart]  = useState(() => getMonday(new Date()));
   const [sessions,   setSessions]   = useState(SEED);
-  const [modal,      setModal]      = useState(null);   // { date, startHour } | null
-  const [form,       setForm]       = useState(blankForm());
-  const [conflicts,  setConflicts]  = useState([]);
-  const [confirming, setConfirming] = useState(false);
+  const [modal,          setModal]          = useState(null);
+  const [form,           setForm]           = useState(blankForm());
+  const [conflicts,      setConflicts]      = useState([]);
+  const [confirming,     setConfirming]     = useState(false);
+  const [editingSession, setEditingSession] = useState(null);
 
   const weekEnd  = addDays(weekStart, 4);
   const todayIso = isoDate(new Date());
@@ -97,7 +98,7 @@ export default function MySessions() {
   });
 
   const weekIsos      = new Set(weekDays.map(d => d.iso));
-  const weekSessions  = sessions.filter(s => weekIsos.has(s.date));
+  const weekSessions  = sessions.filter(s => weekIsos.has(s.date) && s.status !== 'Cancelled');
 
   // ── Navigation ──
   function prevWeek() { setWeekStart(w => addDays(w, -7)); }
@@ -106,14 +107,32 @@ export default function MySessions() {
 
   // ── Modal ──
   function openModal(date, startHour) {
+    setEditingSession(null);
     setForm(blankForm(date, startHour));
     setConflicts([]);
     setConfirming(false);
     setModal({ date, startHour });
   }
 
+  function openEditModal(session) {
+    setForm({
+      processNum:      session.processNum,
+      clausesCovered:  [...session.clausesCovered],
+      date:            session.date,
+      startTime:       session.startTime,
+      durationMinutes: session.durationMinutes,
+      auditor:         session.auditor,
+      auditee:         session.auditee,
+    });
+    setConflicts([]);
+    setConfirming(false);
+    setEditingSession(session);
+    setModal(true);
+  }
+
   function closeModal() {
     setModal(null);
+    setEditingSession(null);
     setConflicts([]);
     setConfirming(false);
   }
@@ -154,7 +173,7 @@ export default function MySessions() {
   function handleSubmit() {
     if (!form.processNum || !form.date || !form.startTime) return;
     const candidate = {
-      id:              `session-new-${Date.now()}`,
+      id:              editingSession ? editingSession.id : `session-new-${Date.now()}`,
       processNum:      form.processNum,
       auditor:         form.auditor,
       auditee:         form.auditee,
@@ -170,7 +189,18 @@ export default function MySessions() {
       setConfirming(true);
       return;
     }
-    setSessions(prev => [...prev, candidate]);
+    if (editingSession) {
+      setSessions(prev => prev.map(s => s.id === editingSession.id ? candidate : s));
+    } else {
+      setSessions(prev => [...prev, candidate]);
+    }
+    closeModal();
+  }
+
+  function handleCancelSession() {
+    setSessions(prev => prev.map(s =>
+      s.id === editingSession.id ? { ...s, status: 'Cancelled' } : s
+    ));
     closeModal();
   }
 
@@ -252,7 +282,7 @@ export default function MySessions() {
                 {weekSessions
                   .filter(s => s.date === day.iso)
                   .map(s => (
-                    <SessionBlock key={s.id} session={s} allSessions={sessions} />
+                    <SessionBlock key={s.id} session={s} allSessions={sessions} onEdit={() => openEditModal(s)} />
                   ))
                 }
               </div>
@@ -280,11 +310,13 @@ export default function MySessions() {
           conflicts={conflicts}
           confirming={confirming}
           sessions={sessions}
+          editingSession={editingSession}
           onField={setField}
           onProcess={handleProcessChange}
           onClause={toggleClause}
           onSubmit={handleSubmit}
           onClose={closeModal}
+          onCancelSession={handleCancelSession}
         />
       )}
     </div>
@@ -293,7 +325,7 @@ export default function MySessions() {
 
 // ── Session block ─────────────────────────────────────────────────────────────
 
-function SessionBlock({ session, allSessions }) {
+function SessionBlock({ session, allSessions, onEdit }) {
   const proc   = PROCESSES.find(p => p.num === session.processNum);
   const status = proc ? getSchedulingStatus(proc, allSessions) : 'Planned';
   const c      = STATUS_COLORS[status] || STATUS_COLORS['Planned'];
@@ -309,10 +341,10 @@ function SessionBlock({ session, allSessions }) {
 
   return (
     <div
-      className="absolute left-1 right-1 rounded overflow-hidden z-10 select-none"
+      className="absolute left-1 right-1 rounded overflow-hidden z-10 select-none cursor-pointer hover:brightness-95 transition-all"
       style={{ top, height, background: c.bg, borderLeft: `3px solid ${c.border}` }}
-      title={`${proc?.process ?? session.processNum} · ${session.startTime}–${end} · ${session.auditee}`}
-      onClick={e => e.stopPropagation()}
+      title={`${proc?.process ?? session.processNum} · ${session.startTime}–${end} · ${session.auditee} — click to edit`}
+      onClick={e => { e.stopPropagation(); onEdit(); }}
     >
       <div className="px-1.5 py-1 h-full overflow-hidden">
         <div className="text-[11px] font-semibold leading-tight truncate" style={{ color: c.text }}>
@@ -333,10 +365,11 @@ function SessionBlock({ session, allSessions }) {
 
 // ── Create session modal ──────────────────────────────────────────────────────
 
-function CreateSessionModal({ form, conflicts, confirming, sessions, onField, onProcess, onClause, onSubmit, onClose }) {
+function CreateSessionModal({ form, conflicts, confirming, sessions, editingSession, onField, onProcess, onClause, onSubmit, onClose, onCancelSession }) {
   const proc         = PROCESSES.find(p => p.num === form.processNum);
   const clauseDetails = form.processNum ? getClauseSessionDetails(form.processNum, sessions) : {};
   const canSubmit    = !!(form.processNum && form.date && form.startTime);
+  const [cancelConfirm, setCancelConfirm] = useState(false);
 
   const LABEL = 'text-[10px] font-semibold text-gray-500 uppercase tracking-wider block mb-1';
   const INPUT = 'text-xs border border-gray-200 rounded px-2 bg-white w-full focus:outline-none focus:ring-1 focus:ring-blue-300';
@@ -347,7 +380,9 @@ function CreateSessionModal({ form, conflicts, confirming, sessions, onField, on
 
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-          <div className="text-sm font-semibold text-gray-800">Schedule session</div>
+          <div className="text-sm font-semibold text-gray-800">
+            {editingSession ? 'Edit session' : 'Schedule session'}
+          </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg leading-none">✕</button>
         </div>
 
@@ -471,20 +506,48 @@ function CreateSessionModal({ form, conflicts, confirming, sessions, onField, on
         </div>
 
         {/* Footer */}
-        <div className="flex gap-2 justify-end px-4 py-3 border-t border-gray-100">
-          <button onClick={onClose}
-            className="px-3 py-1.5 text-xs border border-gray-200 rounded-md hover:bg-gray-50 text-gray-600">
-            Cancel
-          </button>
-          <button
-            onClick={onSubmit}
-            disabled={!canSubmit}
-            className={`px-3 py-1.5 text-xs rounded-md font-medium text-white transition-colors
-              disabled:opacity-40 disabled:cursor-not-allowed
-              ${confirming ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-600 hover:bg-blue-700'}`}
-          >
-            {confirming ? 'Schedule anyway' : 'Schedule session'}
-          </button>
+        <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+          {/* Cancel session — edit mode only */}
+          <div>
+            {editingSession && (
+              cancelConfirm ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-medium text-red-600">Cancel this session?</span>
+                  <button onClick={onCancelSession}
+                    className="px-2 py-1 text-[11px] bg-red-600 text-white rounded-md hover:bg-red-700 font-medium">
+                    Yes, cancel
+                  </button>
+                  <button onClick={() => setCancelConfirm(false)}
+                    className="px-2 py-1 text-[11px] border border-gray-200 rounded-md hover:bg-gray-50 text-gray-500">
+                    No
+                  </button>
+                </div>
+              ) : (
+                <button onClick={() => setCancelConfirm(true)}
+                  className="px-3 py-1.5 text-xs border border-red-200 rounded-md text-red-500 hover:bg-red-50 hover:border-red-300 transition-colors">
+                  Cancel session
+                </button>
+              )
+            )}
+          </div>
+          {/* Primary actions */}
+          <div className="flex gap-2">
+            <button onClick={onClose}
+              className="px-3 py-1.5 text-xs border border-gray-200 rounded-md hover:bg-gray-50 text-gray-600">
+              Close
+            </button>
+            <button
+              onClick={onSubmit}
+              disabled={!canSubmit}
+              className={`px-3 py-1.5 text-xs rounded-md font-medium text-white transition-colors
+                disabled:opacity-40 disabled:cursor-not-allowed
+                ${confirming ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-600 hover:bg-blue-700'}`}
+            >
+              {editingSession
+                ? (confirming ? 'Re-schedule anyway'  : 'Re-schedule session')
+                : (confirming ? 'Schedule anyway'     : 'Schedule session')}
+            </button>
+          </div>
         </div>
       </div>
     </div>
