@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { PROCESSES }   from '../data/processes';
 import { SESSIONS as SEED } from '../data/sessions';
-import { getSchedulingStatus } from '../utils/schedulingStatus';
+import { getSchedulingStatus, getClauseSessionDetails } from '../utils/schedulingStatus';
 import { checkConflicts }      from '../utils/conflictCheck';
 
 // ── Grid constants ────────────────────────────────────────────────────────────
@@ -60,14 +60,11 @@ function endTimeStr(startTime, durationMinutes) {
   return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
 }
 
-// ── Clause coverage helpers ───────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-function getCoveredSet(processNum, sessions) {
-  const s = new Set();
-  sessions
-    .filter(x => x.processNum === processNum && x.status !== 'Cancelled')
-    .forEach(x => x.clausesCovered.forEach(c => s.add(c)));
-  return s;
+function fmtDateShort(iso) {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 function blankForm(date = '', startHour = 9) {
@@ -128,10 +125,19 @@ export default function MySessions() {
   }
 
   function handleProcessChange(processNum) {
-    const proc      = PROCESSES.find(p => p.num === processNum);
-    const covered   = getCoveredSet(processNum, sessions);
-    const uncovered = proc ? proc.clauses.map(c => c.num).filter(n => !covered.has(n)) : [];
-    setForm(f => ({ ...f, processNum, clausesCovered: uncovered, auditor: proc?.auditor || '', auditee: proc?.owner || '' }));
+    const proc           = PROCESSES.find(p => p.num === processNum);
+    const clauseDetails  = getClauseSessionDetails(processNum, sessions);
+    // Pre-check only clauses with no prior coverage; covered ones are opt-in for continuations
+    const defaultChecked = proc
+      ? proc.clauses.map(c => c.num).filter(n => !clauseDetails[n])
+      : [];
+    setForm(f => ({
+      ...f,
+      processNum,
+      clausesCovered: defaultChecked,
+      auditor: proc?.auditor || '',
+      auditee: proc?.owner   || '',
+    }));
     setConflicts([]);
     setConfirming(false);
   }
@@ -328,10 +334,9 @@ function SessionBlock({ session, allSessions }) {
 // ── Create session modal ──────────────────────────────────────────────────────
 
 function CreateSessionModal({ form, conflicts, confirming, sessions, onField, onProcess, onClause, onSubmit, onClose }) {
-  const proc           = PROCESSES.find(p => p.num === form.processNum);
-  const covered        = form.processNum ? getCoveredSet(form.processNum, sessions) : new Set();
-  const uncoveredClauses = proc ? proc.clauses.filter(c => !covered.has(c.num)) : [];
-  const canSubmit      = !!(form.processNum && form.date && form.startTime);
+  const proc         = PROCESSES.find(p => p.num === form.processNum);
+  const clauseDetails = form.processNum ? getClauseSessionDetails(form.processNum, sessions) : {};
+  const canSubmit    = !!(form.processNum && form.date && form.startTime);
 
   const LABEL = 'text-[10px] font-semibold text-gray-500 uppercase tracking-wider block mb-1';
   const INPUT = 'text-xs border border-gray-200 rounded px-2 bg-white w-full focus:outline-none focus:ring-1 focus:ring-blue-300';
@@ -397,41 +402,50 @@ function CreateSessionModal({ form, conflicts, confirming, sessions, onField, on
             </div>
           </div>
 
-          {/* Clauses to cover */}
+          {/* Clauses to cover — all shown; covered ones show ✓ + prior session dates */}
           {proc && (
             <div>
-              <label className={LABEL}>
-                Clauses to cover
-                {uncoveredClauses.length === 0 && (
-                  <span className="ml-1.5 font-normal normal-case tracking-normal text-green-600">
-                    — all clauses already covered
-                  </span>
-                )}
-              </label>
-
-              {uncoveredClauses.length > 0 ? (
-                <div className="border border-gray-200 rounded-lg overflow-hidden" style={{ maxHeight: 168 }}>
-                  <div className="overflow-y-auto" style={{ maxHeight: 168 }}>
-                    {uncoveredClauses.map(c => (
+              <label className={LABEL}>Clauses to cover</label>
+              <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <div className="overflow-y-auto" style={{ maxHeight: 200 }}>
+                  {proc.clauses.map(c => {
+                    const prior    = clauseDetails[c.num] || [];
+                    const hasPrior = prior.length > 0;
+                    return (
                       <label key={c.num}
                         className="flex items-start gap-2.5 px-3 py-2 border-b border-gray-50 last:border-0 hover:bg-gray-50 cursor-pointer">
                         <input type="checkbox"
                           checked={form.clausesCovered.includes(c.num)}
                           onChange={() => onClause(c.num)}
                           className="mt-0.5 w-3.5 h-3.5 accent-blue-600 shrink-0" />
-                        <span className="text-[11px] leading-snug">
-                          <span className="font-semibold text-blue-600">§{c.num}</span>
-                          <span className="text-gray-600 ml-1.5">{c.title}</span>
-                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[11px] leading-snug">
+                            <span className="font-semibold text-blue-600">§{c.num}</span>
+                            <span className="text-gray-600 ml-1.5">{c.title}</span>
+                          </div>
+                          {hasPrior && (
+                            <div className="relative group inline-flex items-center gap-1 mt-0.5 cursor-help"
+                              onClick={e => e.preventDefault()}>
+                              <span className="text-[10px] font-medium" style={{ color: '#16a34a' }}>
+                                ✓ {prior.map(s => fmtDateShort(s.date)).join(', ')}
+                              </span>
+                              {/* Hover tooltip */}
+                              <div className="absolute left-0 top-4 z-30 hidden group-hover:block w-64 rounded-md shadow-lg pointer-events-none"
+                                style={{ background: '#1f2937', padding: '6px 10px' }}>
+                                {prior.map(s => (
+                                  <div key={s.id} className="text-[10px] leading-relaxed" style={{ color: '#e5e7eb' }}>
+                                    {s.date} · {s.startTime}–{endTimeStr(s.startTime, s.durationMinutes)} · {s.auditor} / {s.auditee}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </label>
-                    ))}
-                  </div>
+                    );
+                  })}
                 </div>
-              ) : (
-                <p className="text-[11px] text-gray-400 italic">
-                  All {proc.clauses.length} clauses for this process are already scheduled.
-                </p>
-              )}
+              </div>
             </div>
           )}
 
