@@ -29,7 +29,7 @@ export default function MasterPlan() {
       <h2 className="text-lg font-semibold mb-1">Master Plan</h2>
       <p className="text-sm text-gray-500 mb-4">Click a row to expand — documents are tagged to each clause</p>
 
-      <div className="bg-white border border-gray-200 rounded-xl p-4">
+      <div className="bg-white border border-gray-200 rounded-lg p-4">
         {/* Filters */}
         <div className="flex gap-3 items-center mb-4 flex-wrap">
           <label className="text-xs text-gray-500">Year</label>
@@ -53,13 +53,13 @@ export default function MasterPlan() {
             <thead>
               <tr className="border-b border-gray-100">
                 <th className="w-6"></th>
-                <th className="text-left py-2 px-3 text-gray-500 font-medium whitespace-nowrap">Audit #</th>
-                <th className="text-left py-2 px-3 text-gray-500 font-medium">Process</th>
-                <th className="text-left py-2 px-3 text-gray-500 font-medium">Process Owner</th>
-                <th className="text-left py-2 px-3 text-gray-500 font-medium">Auditor(s)</th>
-                <th className="text-left py-2 px-3 text-gray-500 font-medium whitespace-nowrap">Date</th>
-                <th className="text-left py-2 px-3 text-gray-500 font-medium">Status</th>
-                <th className="text-left py-2 px-3 text-gray-500 font-medium whitespace-nowrap">Prev NCRs</th>
+                <th className="text-left text-gray-500 font-medium whitespace-nowrap" style={{ padding: '9px 10px' }}>Audit #</th>
+                <th className="text-left text-gray-500 font-medium" style={{ padding: '9px 10px' }}>Process</th>
+                <th className="text-left text-gray-500 font-medium" style={{ padding: '9px 10px' }}>Process Owner</th>
+                <th className="text-left text-gray-500 font-medium" style={{ padding: '9px 10px' }}>Auditor(s)</th>
+                <th className="text-left text-gray-500 font-medium whitespace-nowrap" style={{ padding: '9px 10px' }}>Date</th>
+                <th className="text-left text-gray-500 font-medium" style={{ padding: '9px 10px' }}>Status</th>
+                <th className="text-left text-gray-500 font-medium whitespace-nowrap" style={{ padding: '9px 10px' }}>Prev NCRs</th>
               </tr>
             </thead>
             <tbody>
@@ -71,22 +71,22 @@ export default function MasterPlan() {
                     className={`cursor-pointer border-b border-gray-50 hover:bg-gray-50 transition-colors ${openRows[i] ? 'bg-gray-50' : ''}`}
                     onClick={() => toggleRow(i)}
                   >
-                    <td className="py-2 px-2 text-center text-gray-400 text-[10px]">
+                    <td className="text-center text-gray-400 text-[10px]" style={{ padding: '9px 8px' }}>
                       <span style={{ display: 'inline-block', transition: 'transform 0.2s', transform: openRows[i] ? 'rotate(90deg)' : 'rotate(0deg)' }}>▶</span>
                     </td>
-                    <td className="py-2 px-3">
+                    <td style={{ padding: '9px 10px' }}>
                       <span className="font-mono font-semibold text-blue-600">{p.num}</span>
                     </td>
-                    <td className="py-2 px-3 font-medium">{p.process}</td>
-                    <td className="py-2 px-3 text-gray-500">{p.owner}</td>
-                    <td className="py-2 px-3 text-gray-500">{p.auditor}</td>
-                    <td className="py-2 px-3 text-gray-500 whitespace-nowrap">{p.date}</td>
-                    <td className="py-2 px-3">
+                    <td className="font-medium" style={{ padding: '9px 10px' }}>{p.process}</td>
+                    <td className="text-gray-500" style={{ padding: '9px 10px' }}>{p.owner}</td>
+                    <td className="text-gray-500" style={{ padding: '9px 10px' }}>{p.auditor}</td>
+                    <td className="text-gray-500 whitespace-nowrap" style={{ padding: '9px 10px' }}>{p.date}</td>
+                    <td style={{ padding: '9px 10px' }}>
                       <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${STATUS_STYLES[p.status] || 'bg-gray-100 text-gray-600'}`}>
                         {p.status}
                       </span>
                     </td>
-                    <td className="py-2 px-3">
+                    <td style={{ padding: '9px 10px' }}>
                       {p.prevNcr
                         ? <span className="px-2 py-0.5 rounded-full text-[10px] bg-yellow-100 text-yellow-700">{p.prevNcr}</span>
                         : <span className="text-gray-300">—</span>

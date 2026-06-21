@@ -176,6 +176,13 @@ export const PROCESSES = [
   },
 ];
 
+// Derive cycle + year from num (format: YYYY-C-P) so filter logic in utils works
+PROCESSES.forEach(p => {
+  const [y, c] = p.num.split('-');
+  p.year  = parseInt(y);
+  p.cycle = parseInt(c);
+});
+
 export const EXTERNAL_AUDITS = [
   { id: 1, type: 'CB Audit', org: 'TÜV Rheinland', contact: 'K. Bauer', standards: ['AS9100', 'ISO14001'], scope: 'Full site — surveillance', start: '2026-07-14', end: '2026-07-16', carDue: '2026-08-13', status: 'Planned' },
   { id: 2, type: 'Customer', org: 'Boeing', contact: 'J. Rivera', standards: ['AS9100'], scope: 'Full site — all departments', start: '2026-06-23', end: '2026-06-24', carDue: null, status: 'Scheduled' },

@@ -96,7 +96,7 @@ export default function TurtleModal({ process: proc, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl border border-gray-200 w-full max-w-3xl max-h-[90vh] overflow-y-auto p-5">
+      <div className="bg-white rounded-lg border border-gray-200 w-full max-w-3xl max-h-[90vh] overflow-y-auto p-5">
 
         {/* Header */}
         <div className="flex items-center gap-3 mb-4 flex-wrap">

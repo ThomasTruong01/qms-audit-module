@@ -1,12 +1,13 @@
 // App.jsx
 import { useState } from 'react';
-import Dashboard from './components/Dashboard';
-import MasterPlan from './components/MasterPlan';
+import Dashboard   from './components/Dashboard';
+import MasterPlan  from './components/MasterPlan';
+import AuditRecord from './components/AuditRecord';
 
 // Placeholder views for tabs not yet built
 function Placeholder({ name }) {
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-8 text-center text-gray-400">
+    <div className="bg-white border border-gray-200 rounded-lg p-8 text-center text-gray-400">
       <div className="text-2xl mb-2">🚧</div>
       <div className="font-medium text-gray-600">{name}</div>
       <div className="text-sm mt-1">Coming soon</div>
@@ -27,8 +28,9 @@ export default function App() {
 
   function renderTab() {
     switch (tab) {
-      case 'dashboard': return <Dashboard />;
+      case 'dashboard': return <Dashboard onNavigate={setTab} />;
       case 'master':    return <MasterPlan />;
+      case 'record':    return <AuditRecord />;
       default:          return <Placeholder name={TABS.find(t => t.id === tab)?.label} />;
     }
   }
