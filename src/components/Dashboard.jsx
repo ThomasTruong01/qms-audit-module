@@ -10,10 +10,12 @@ import ProcessExpandPanel   from './ProcessExpandPanel';
 // ── Shared constants ────────────────────────────────────────────────────────
 
 const STATUS_STYLES = {
-  'Complete':    { bg: '#dcfce7', color: '#166534' },
-  'In Progress': { bg: '#fef9c3', color: '#854d0e' },
-  'Scheduled':   { bg: '#f3f4f6', color: '#4b5563' },
-  'Planned':     { bg: '#f3f4f6', color: '#4b5563' },
+  'Complete':            { bg: '#dcfce7', color: '#166534' },
+  'In Progress':         { bg: '#fef9c3', color: '#854d0e' },
+  'Fully Scheduled':     { bg: '#dbeafe', color: '#1d4ed8' },
+  'Partially Scheduled': { bg: '#fef3c7', color: '#92400e' },
+  'Scheduled':           { bg: '#f3f4f6', color: '#4b5563' },
+  'Planned':             { bg: '#f3f4f6', color: '#4b5563' },
 };
 
 const TYPE_STYLES = {
@@ -31,7 +33,7 @@ function fmtDate(iso) {
 
 // ── Component ───────────────────────────────────────────────────────────────
 
-export default function Dashboard({ onNavigate }) {
+export default function Dashboard({ onNavigate, onScheduleSession }) {
   const [openRows, setOpenRows] = useState({});
 
   const c1pct = getCycleProgress(PROCESSES, 1, 2026);
@@ -197,6 +199,7 @@ export default function Dashboard({ onNavigate }) {
                           <ProcessExpandPanel
                             processes={PROCESSES.filter(p => p.cycle === ev.cycle && p.year === ev.year)}
                             onNavigate={onNavigate}
+                            onScheduleSession={onScheduleSession}
                           />
                         </td>
                       </tr>

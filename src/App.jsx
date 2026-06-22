@@ -5,7 +5,6 @@ import MasterPlan  from './components/MasterPlan';
 import MySessions  from './components/MySessions';
 import AuditRecord from './components/AuditRecord';
 
-// Placeholder views for tabs not yet built
 function Placeholder({ name }) {
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-8 text-center text-gray-400">
@@ -26,13 +25,19 @@ const TABS = [
 ];
 
 export default function App() {
-  const [tab, setTab] = useState('dashboard');
+  const [tab,            setTab]            = useState('dashboard');
+  const [pendingProcess, setPendingProcess] = useState(null);
+
+  function handleScheduleSession(processNum) {
+    setPendingProcess(processNum);
+    setTab('sessions');
+  }
 
   function renderTab() {
     switch (tab) {
-      case 'dashboard': return <Dashboard onNavigate={setTab} />;
-      case 'master':    return <MasterPlan />;
-      case 'sessions':  return <MySessions />;
+      case 'dashboard': return <Dashboard onNavigate={setTab} onScheduleSession={handleScheduleSession} />;
+      case 'master':    return <MasterPlan onNavigate={setTab} onScheduleSession={handleScheduleSession} />;
+      case 'sessions':  return <MySessions pendingProcess={pendingProcess} onClearPending={() => setPendingProcess(null)} />;
       case 'record':    return <AuditRecord />;
       default:          return <Placeholder name={TABS.find(t => t.id === tab)?.label} />;
     }

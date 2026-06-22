@@ -1,6 +1,6 @@
 // MySessions.jsx — Week-view audit session calendar with conflict detection
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PROCESSES }   from '../data/processes';
 import { SESSIONS as SEED } from '../data/sessions';
 import { getSchedulingStatus, getClauseSessionDetails } from '../utils/schedulingStatus';
@@ -81,7 +81,7 @@ function blankForm(date = '', startHour = 9) {
 
 // ── MySessions (main) ─────────────────────────────────────────────────────────
 
-export default function MySessions() {
+export default function MySessions({ pendingProcess, onClearPending }) {
   const [weekStart,  setWeekStart]  = useState(() => getMonday(new Date()));
   const [sessions,   setSessions]   = useState(SEED);
   const [modal,          setModal]          = useState(null);
@@ -136,6 +136,30 @@ export default function MySessions() {
     setConflicts([]);
     setConfirming(false);
   }
+
+  // When App navigates here with a pre-selected process, auto-open the create modal.
+  useEffect(() => {
+    if (!pendingProcess) return;
+    const proc          = PROCESSES.find(p => p.num === pendingProcess);
+    const clauseDetails = getClauseSessionDetails(pendingProcess, sessions);
+    const defaultChecked = proc
+      ? proc.clauses.map(c => c.num).filter(n => !clauseDetails[n])
+      : [];
+    setEditingSession(null);
+    setForm({
+      processNum:      pendingProcess,
+      clausesCovered:  defaultChecked,
+      date:            '',
+      startTime:       '09:00',
+      durationMinutes: 60,
+      auditor:         proc?.auditor || '',
+      auditee:         proc?.owner   || '',
+    });
+    setConflicts([]);
+    setConfirming(false);
+    setModal(true);
+    onClearPending?.();
+  }, [pendingProcess]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function setField(field, value) {
     setForm(f => ({ ...f, [field]: value }));
