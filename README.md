@@ -1,4 +1,4 @@
-# Audit Module — Rapid Manufacturing QMS
+# Audit Module — QMS
 
 Internal audit management system built in React + Tailwind.
 
